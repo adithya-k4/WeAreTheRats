@@ -1,8 +1,7 @@
 #pragma once
 
-#define PIMORONI_TRACKBALL
+// #define PIMORONI_TRACKBALL
 // #define SEVEN_KEY_PAD
-// #define PIMORONI_TRACKBALL_INT D0
 #define MINUTE_MOVEMENT 5
 
 #ifdef PIMORONI_TRACKBALL
@@ -22,8 +21,16 @@
 #define DEVICE_SELECT 255
 #endif
 
+#if !defined(PIMORONI_TRACKBALL) && !defined(SEVEN_KEY_PAD)
+// Air Scribe (XIAO nRF52840): simple GPIO buttons only.
+// Use pull-up inputs and connect buttons to GND.
+#define MOUSE_LEFT D1
+#define MOUSE_RIGHT D2
+#define DEVICE_SELECT D3
+#endif
+
 #define MOUSE_ACTIVATE D6
-#define KEYPAD_ACTIVATE D10
+#define KEYPAD_ACTIVATE D7
 
 // #define LED_CHARGER 23
 #define LIGHT_ON LOW
@@ -44,20 +51,21 @@
 #define DEVICE_MOUSE_MODE 0
 #define DEVICE_KEYBOARD_MODE 1
 
-// #define BNO085
+#define BNO085
 #ifdef BNO085
 #define report_freq 1
 #define BNO08X_RESET -1
 #endif
 
-#define IMU_LSM6DS3
+// #define IMU_LSM6DS3
 #ifdef IMU_LSM6DS3
 #define report_freq 10
 #endif
 
 // #define IMU_USE_RESET
 
-// #define IMU_USE_INT
+// BNO085 data ready IRQ pin.
+#define IMU_USE_INT
 #ifdef IMU_USE_RESET
 #define IMU_RESET D0
 #endif

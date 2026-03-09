@@ -44,6 +44,15 @@ euler ypr, ypr0;
 
 Adafruit_BNO08x bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
+
+#ifndef BNO085_I2C_ADDR
+// BNO085 default address with ADR pulled low.
+#define BNO085_I2C_ADDR 0x4A
+#endif
+
+volatile bool bno085InterruptFired = false;
+
+void imuInterruptHandler() { bno085InterruptFired = true; }
 // sh2_SensorId_t reportType = SH2_ROTATION_VECTOR; // SH2_ARVR_STABILIZED_RV;
 // long reportIntervalUs = 20000;
 
@@ -55,8 +64,8 @@ void imuConfigure(int deviceMode) {
     dataRate = 10 * 1000;
   }
 
-  if (!bno08x.enableReport(SH2_ROTATION_VECTOR, dataRate)) {
-    Serial.println("Could not enable rotation vector");
+  if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, dataRate)) {
+    Serial.println("Could not enable game rotation vector");
   }
   if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION, dataRate)) {
     Serial.println("Could not enable linear acceleration");
@@ -87,13 +96,19 @@ void quaternionToEuler(float qi, float qj, float qk, float qr, euler *ypr,
 
 int imuInit(int deviceMode) {
 
-  if (!bno08x.begin_I2C()) {
+  if (!bno08x.begin_I2C(BNO085_I2C_ADDR)) {
     Serial.println("Failed to find BNO08x chip");
     systemHaltWithledPattern(LED_RED, 3);
   }
   Serial.println("BNO08x Found!");
 
   imuConfigure(deviceMode);
+
+#ifdef IMU_USE_INT
+  attachInterrupt(digitalPinToInterrupt(IMU_INT), imuInterruptHandler, FALLING);
+  bno085InterruptFired = true;
+#endif
+
   delay(100);
 
   return 0;
@@ -111,18 +126,17 @@ int imuReadAndUpdateXYAngle() {
   //     // systemSleep();
   //   }
   // #endif
-  static uint32_t last = 0;
-  long now = micros();
-
   imuReadNoWait();
-  if (newData) {
-    newData = false;
-    displayData();
-    quaternionToEuler(rtVector[0], rtVector[1], rtVector[2], rtVector[3], &ypr,
-                      true);
-    xAngle = -ypr.yaw;
-    yAngle = ypr.roll;
+  if (!newData) {
+    return 0;
   }
+
+  newData = false;
+  displayData();
+  quaternionToEuler(rtVector[0], rtVector[1], rtVector[2], rtVector[3], &ypr,
+                    true);
+  xAngle = -ypr.yaw;
+  yAngle = ypr.roll;
 
   return 0;
 }
@@ -199,10 +213,19 @@ float imuSumOfAbsolateAcclOfAllAxis() {
 }
 
 bool imuDataReady() {
-  // BNO085 pull IMU_INT LOW when data is ready
-  if (digitalRead(IMU_INT) == LOW)
+#ifdef IMU_USE_INT
+  // latched by falling-edge interrupt, cleared on read path
+  if (!bno085InterruptFired) {
+    return false;
+  }
+  if (digitalRead(IMU_INT) == LOW) {
     return true;
+  }
+  bno085InterruptFired = false;
   return false;
+#else
+  return true;
+#endif
 }
 #endif
 
