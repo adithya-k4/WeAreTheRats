@@ -277,12 +277,21 @@ void loop() {
 
 uint8_t clickButtons[] = {MOUSE_LEFT, MOUSE_RIGHT, MOUSE_ACTIVATE,
                           KEYPAD_ACTIVATE, DEVICE_SELECT};
-uint8_t clickButtonLastState[] = {HIGH, HIGH, LOW, LOW, HIGH};
-#ifdef PIMORONI_TRACKBALL
-uint8_t clickButtonCode[] = {MOUSE_BUTTON_LEFT, MOUSE_BUTTON_LEFT, 0, 0, 0};
-#else
+uint8_t clickButtonActiveState[] = {
+    BUTTON_ACTIVE_STATE_TOUCH,
+    BUTTON_ACTIVE_STATE_TOUCH,
+    BUTTON_ACTIVE_STATE_TOUCH,
+    BUTTON_ACTIVE_STATE_PUSH,
+    BUTTON_ACTIVE_STATE_PUSH,
+};
+uint8_t clickButtonLastState[] = {
+    BUTTON_INACTIVE_STATE_TOUCH,
+    BUTTON_INACTIVE_STATE_TOUCH,
+    BUTTON_INACTIVE_STATE_TOUCH,
+    BUTTON_INACTIVE_STATE_PUSH,
+    BUTTON_INACTIVE_STATE_PUSH,
+};
 uint8_t clickButtonCode[] = {MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, 0, 0, 0};
-#endif
 uint8_t clickButtonKeyboardCode[] = {HID_KEY_ENTER, HID_KEY_BACKSPACE, 0, 0, 0};
 
 void scanOneClickButton(uint8_t keyIndex) {
@@ -292,6 +301,10 @@ void scanOneClickButton(uint8_t keyIndex) {
                        clickButtons[keyIndex] == KEYPAD_ACTIVATE ||
                        clickButtons[keyIndex] == DEVICE_SELECT))
     return;
+
+  if (clickButtons[keyIndex] == 255) {
+    return;
+  }
 
   uint8_t state = digitalRead(clickButtons[keyIndex]);
   if (state == clickButtonLastState[keyIndex]) { // no change
@@ -330,13 +343,13 @@ void scanOneClickButton(uint8_t keyIndex) {
 #endif
     break;
   case DEVICE_SELECT:
-    if (state == LOW) {
+    if (state == clickButtonActiveState[keyIndex]) {
       setDeviceId();
     }
     break;
   default:
     if (deviceMode == DEVICE_MOUSE_MODE) {
-      if (state == LOW) {
+      if (state == clickButtonActiveState[keyIndex]) {
         // if (keyIndex == 1) {
         //   // hack the backspace button for device switching
         //   setDeviceId();
@@ -351,7 +364,7 @@ void scanOneClickButton(uint8_t keyIndex) {
         noModeSwitch = false;
       }
     } else {
-      if (state == LOW) {
+      if (state == clickButtonActiveState[keyIndex]) {
         uint8_t keycodes[6] = {HID_KEY_NONE, HID_KEY_NONE, HID_KEY_NONE,
                                HID_KEY_NONE, HID_KEY_NONE, HID_KEY_NONE};
         // if (keyIndex == 1) {
@@ -375,15 +388,18 @@ void scanOneClickButton(uint8_t keyIndex) {
 
 void scanClickButtons() {
 
-  // Only mouse left and right click
 #ifdef PIMORONI_TRACKBALL
+  // Trackball hardware provides the left click, so only scan the remaining
+  // buttons.
   for (int i = 1; i < 5; i++) {
     scanOneClickButton(i);
   }
-#endif
-
-#ifdef SEVEN_KEY_PAD
+#elif defined(SEVEN_KEY_PAD)
   for (int i = 0; i < 4; i++) {
+    scanOneClickButton(i);
+  }
+#else
+  for (int i = 0; i < 5; i++) {
     scanOneClickButton(i);
   }
 #endif
@@ -594,25 +610,33 @@ void configGpio() {
   pinMode(IMU_INT, INPUT_PULLUP);
 #endif
 
-  pinMode(MOUSE_RIGHT, INPUT_PULLUP);
-  pinMode(MOUSE_ACTIVATE, INPUT_PULLUP);
+  if (MOUSE_LEFT != 255) {
+    pinMode(MOUSE_LEFT, INPUT);
+  }
+  if (MOUSE_RIGHT != 255) {
+    pinMode(MOUSE_RIGHT, INPUT);
+  }
+  pinMode(MOUSE_ACTIVATE, INPUT);
   pinMode(KEYPAD_ACTIVATE, INPUT_PULLUP);
-  digitalWrite(KEYPAD_ACTIVATE, HIGH);
-  digitalWrite(MOUSE_ACTIVATE, HIGH);
-  digitalWrite(MOUSE_RIGHT, HIGH);
 
-  pinMode(DEVICE_SELECT, INPUT_PULLUP);
-  digitalWrite(DEVICE_SELECT, HIGH);
+  if (DEVICE_SELECT != 255) {
+    pinMode(DEVICE_SELECT, INPUT_PULLUP);
+    digitalWrite(DEVICE_SELECT, HIGH);
+  }
 
 #ifdef SEVEN_KEY_PAD
-  pinMode(MOUSE_LEFT, INPUT_PULLUP);
+  if (MOUSE_LEFT != 255) {
+    pinMode(MOUSE_LEFT, INPUT_PULLUP);
+  }
   pinMode(KEYPAD_LEFT, INPUT_PULLUP);
   pinMode(KEYPAD_RIGHT, INPUT_PULLUP);
   pinMode(KEYPAD_CENTER, INPUT_PULLUP);
   pinMode(KEYPAD_UP, INPUT_PULLUP);
   pinMode(KEYPAD_DOWN, INPUT_PULLUP);
 
-  digitalWrite(MOUSE_LEFT, HIGH);
+  if (MOUSE_LEFT != 255) {
+    digitalWrite(MOUSE_LEFT, HIGH);
+  }
   digitalWrite(KEYPAD_LEFT, HIGH);
   digitalWrite(KEYPAD_RIGHT, HIGH);
   digitalWrite(KEYPAD_CENTER, HIGH);
