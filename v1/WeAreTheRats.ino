@@ -147,6 +147,8 @@ void loop() {
   scanNavigateButtons();
 #endif
 
+  // Standard GPIO button polling (Air Scribe) is handled in scanClickButtons().
+  // Trackball/keypad-specific polling remains compile-time gated below.
   scanClickButtons();
 
 #ifdef FEATURE_INERTIA_SCROLL
@@ -375,15 +377,18 @@ void scanOneClickButton(uint8_t keyIndex) {
 
 void scanClickButtons() {
 
-  // Only mouse left and right click
 #ifdef PIMORONI_TRACKBALL
+  // Trackball profile has no dedicated MOUSE_LEFT GPIO.
   for (int i = 1; i < 5; i++) {
     scanOneClickButton(i);
   }
-#endif
-
-#ifdef SEVEN_KEY_PAD
+#elif defined(SEVEN_KEY_PAD)
   for (int i = 0; i < 4; i++) {
+    scanOneClickButton(i);
+  }
+#else
+  // Air Scribe base profile: MOUSE_LEFT/MOUSE_RIGHT + mode/device buttons.
+  for (int i = 0; i < 5; i++) {
     scanOneClickButton(i);
   }
 #endif
@@ -620,6 +625,11 @@ void configGpio() {
   digitalWrite(KEYPAD_DOWN, HIGH);
 #endif
 
+#if !defined(PIMORONI_TRACKBALL) && !defined(SEVEN_KEY_PAD)
+  pinMode(MOUSE_LEFT, INPUT_PULLUP);
+  digitalWrite(MOUSE_LEFT, HIGH);
+#endif
+
   digitalWrite(LED_RED, LIGHT_OFF);
   digitalWrite(LED_BLUE, LIGHT_OFF);
   digitalWrite(LED_GREEN, LIGHT_OFF);
@@ -701,11 +711,11 @@ void initAndStartBLE() {
   // min = 9*1.25=11.25 ms, max = 16*1.25=20ms
 
   Bluefruit.setTxPower(4); // Check bluefruit.h for supported values
-  Bluefruit.setName("Rat0");
+  Bluefruit.setName("Air Scribe");
 
   // Configure and Start Device Information Service
-  bledis.setManufacturer("Ergo");
-  bledis.setModel("Ergo");
+  bledis.setManufacturer("Air Scribe");
+  bledis.setModel("Air Scribe");
 
   // Set PnP ID (includes VID, PID, and version)
   uint8_t pnp_id[7];
@@ -795,7 +805,7 @@ manufacturing process and remains unchanged for the lifetime of each IC.
 void setDeviceId() {
   if (deviceId == 0) {
     deviceId = 1;
-    setBdDAAndName((unsigned char)(addrByte3 + 0x32), (char *)"Rat1");
+    setBdDAAndName((unsigned char)(addrByte3 + 0x32), (char *)"Air Scribe");
 
 #ifdef PIMORONI_TRACKBALL
     // flash white twice
@@ -809,7 +819,7 @@ void setDeviceId() {
 #endif
   } else {
     deviceId = 0;
-    setBdDAAndName(addrByte3, (char *)"Rat0");
+    setBdDAAndName(addrByte3, (char *)"Air Scribe");
 #ifdef PIMORONI_TRACKBALL
     // flash white once
     trackball.setWhite(240);

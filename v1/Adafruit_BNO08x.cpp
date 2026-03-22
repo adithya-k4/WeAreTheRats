@@ -414,6 +414,13 @@ static void sensorHandler(void *cookie, sh2_SensorEvent_t *event) {
     return;
   } else {
     switch (_sensor_value->sensorId) {
+    case SH2_GAME_ROTATION_VECTOR:
+      rtVector[0] = _sensor_value->un.gameRotationVector.i;
+      rtVector[1] = _sensor_value->un.gameRotationVector.j;
+      rtVector[2] = _sensor_value->un.gameRotationVector.k;
+      rtVector[3] = _sensor_value->un.gameRotationVector.real;
+      calStatus = _sensor_value->status;
+      break;
     case SH2_ROTATION_VECTOR:
       rtVector[0] = _sensor_value->un.rotationVector.i;
       rtVector[1] = _sensor_value->un.rotationVector.j;
