@@ -23,6 +23,7 @@ extern float xAngle, yAngle;
 // sensorHandler() Currently for keyboard, new data available every 10ms; for
 // mouse, every 20ms
 bool newData = false;
+static bool hasPendingImuSample = false;
 
 // Rotation Vector. i, j, k, real
 // external updated in adafruit_bno08x.cpp sensorHandler()
@@ -103,18 +104,11 @@ int imuReadNoWait() { return bno08x.getSensorEvent(&sensorValue); }
 
 int imuReadAndUpdateXYAngle() {
 
-  // BNO085 pull IMU_INT LOW when data is ready
-  // so do nothing in case of IMU_INT high
-  // #ifdef IMU_USE_INT
-  //   if (digitalRead(IMU_INT) == HIGH) {
-  //     return 1;
-  //     // systemSleep();
-  //   }
-  // #endif
-  static uint32_t last = 0;
-  long now = micros();
-
-  imuReadNoWait();
+  // When no interrupt line is wired, imuDataReady() prefetches the sample.
+  if (!hasPendingImuSample) {
+    imuReadNoWait();
+  }
+  hasPendingImuSample = false;
   if (newData) {
     newData = false;
     displayData();
@@ -199,10 +193,13 @@ float imuSumOfAbsolateAcclOfAllAxis() {
 }
 
 bool imuDataReady() {
-  // BNO085 pull IMU_INT LOW when data is ready
-  if (digitalRead(IMU_INT) == LOW)
-    return true;
-  return false;
+#ifdef IMU_USE_INT
+  // BNO085 pulls INT low when data is ready.
+  return digitalRead(IMU_INT) == LOW;
+#else
+  hasPendingImuSample = imuReadNoWait();
+  return hasPendingImuSample;
+#endif
 }
 #endif
 

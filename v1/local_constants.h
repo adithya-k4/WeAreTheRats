@@ -1,15 +1,13 @@
 #pragma once
 
-#define PIMORONI_TRACKBALL
+// #define PIMORONI_TRACKBALL
 // #define SEVEN_KEY_PAD
 // #define PIMORONI_TRACKBALL_INT D0
 #define MINUTE_MOVEMENT 5
 
-#ifdef PIMORONI_TRACKBALL
-#define MOUSE_RIGHT D3
-#define MOUSE_LEFT 255
-#define DEVICE_SELECT D2
-#endif
+#define MOUSE_LEFT D3        // TTP223 touch sensor, active high
+#define MOUSE_RIGHT 255     // not wired in this build
+#define DEVICE_SELECT 255   // not wired in this build
 
 #ifdef SEVEN_KEY_PAD
 #define MOUSE_LEFT D9
@@ -22,8 +20,13 @@
 #define DEVICE_SELECT 255
 #endif
 
-#define MOUSE_ACTIVATE D6
-#define KEYPAD_ACTIVATE D10
+#define MOUSE_ACTIVATE D6   // TTP223 touch sensor, active high
+#define KEYPAD_ACTIVATE D10 // push button, active low
+
+#define BUTTON_ACTIVE_STATE_TOUCH HIGH
+#define BUTTON_INACTIVE_STATE_TOUCH LOW
+#define BUTTON_ACTIVE_STATE_PUSH LOW
+#define BUTTON_INACTIVE_STATE_PUSH HIGH
 
 // #define LED_CHARGER 23
 #define LIGHT_ON LOW
@@ -44,13 +47,13 @@
 #define DEVICE_MOUSE_MODE 0
 #define DEVICE_KEYBOARD_MODE 1
 
-// #define BNO085
+#define BNO085
 #ifdef BNO085
 #define report_freq 1
 #define BNO08X_RESET -1
 #endif
 
-#define IMU_LSM6DS3
+// #define IMU_LSM6DS3
 #ifdef IMU_LSM6DS3
 #define report_freq 10
 #endif
